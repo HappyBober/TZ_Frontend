@@ -1,0 +1,205 @@
+:root {
+      --bg: #7575753f;
+      --table-bg: #f8f9fc;
+      --text: #1f2937;
+      --th-bg: #c0c0c033;
+      --hover: #f1f5f9;
+      --selected: #83848570;
+      --border: #e5e7eb;
+      --shadow: rgba(0,0,0,0.05);
+      --current-day-bg: #eff6ff;
+      --positive-bg: #ecfdf5;
+      --positive-text: #166534;
+      --negative-bg: #fef2f2;
+      --negative-text: #991b1b;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --table-bg: #0f172a;
+      --text: #e2e8f0;
+      --th-bg: #334155;
+      --hover: #33415566;
+      --selected: #1e40af44;
+      --border: #334155;
+      --shadow: rgba(0,0,0,0.4);
+      --current-day-bg: #1e3a8a33;
+      --positive-bg: #14532d33;
+      --positive-text: #86efac;
+      --negative-bg: #7f1d1d33;
+      --negative-text: #fca5a5;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.4s, color 0.4s;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 24px;
+      z-index: 100;
+      background: var(--table-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      box-shadow: 0 2px 10px var(--shadow);
+      transition: all 0.3s;
+      
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px var(--shadow);
+    }
+
+    .theme-toggle::before {
+    content: attr(data-icon);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 12px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 100%;
+      border-collapse: separate;
+      background: var(--table-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 60px;
+      transition: all 0.4s;
+    }
+
+    th, td {
+      padding: 14px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s, color 0.3s, border-color 0.4s;
+      font-weight: 600
+    }
+
+    th {
+      background: var(--th-bg);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    td:nth-child(2) {
+      background: var(--current-day-bg);
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    td.change-positive,
+    td.change-negative {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+    }
+
+    td.change-positive {
+      background: var(--positive-bg) !important;
+      color: var(--positive-text) !important;
+      font-weight: 600;
+    }
+
+    td.change-negative {
+      background: var(--negative-bg) !important;
+      color: var(--negative-text) !important;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: var(--hover);
+    }
+
+    tr.selected {
+      background: var(--selected) !important;
+    }
+
+    .graph-row {
+      display: none;
+      background: var(--table-bg);
+      transition: background 0.4s;
+    }
+
+    .graph-cell {
+      padding: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .graph-inner {
+      padding: 20px 20px 20px;
+      opacity: 0;
+      transform: translateY(-12px);
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .graph-inner.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .graph-title {
+      margin: 0 0 14px;
+      font-size: 1.28rem;
+      font-weight: 600;
+      color: #3b82f6;
+    }
+
+    [data-theme="dark"] .graph-title {
+      color: #60a5fa;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+    }
+    
+    @media (max-width: 768px) {
+    table,
+    th,
+    td {
+      font-size: 13px !important;
+    }
+
+    td {
+      padding: 9px 6px !important;
+    }
+    html, body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      box-sizing: border-box;
+    }
+
+    .theme-toggle {
+      font-size: 1rem;
+      padding: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+}

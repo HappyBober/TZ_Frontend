@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Таблица + Выпадающие графики</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()" data-icon="🌙"></div>
+
+<div class="container">
+
+  <table id="metricsTable">
+    <thead>
+      <tr>
+        <th>Показатель</th>
+        <th>Текущий день</th>
+        <th>Вчера</th>
+        <th>Этот день недели</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+</div>
+
+<script>
+const daysOfWeek = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+
+// Затычка, вместо которой должны быть считаны данные от API
+const rawData = {
+  "vyruchka":       [220000, 180000, 600000, 360000, 110000, 280521, 500521],
+  "nal":            [80000, 80000, 200000, 160000, 100000, 180521, 100521],
+  "beznal":         [20000, 20000, 300000, 160000, 110000, 180521, 200521],
+  "creditcard":     [120000, 80000, 100000, 160000, 100000, 80521, 100521],
+  "avg-chek":       [1100, 1050, 1250, 1180, 1150, 900, 900],
+  "avg-guest":      [1050, 1000, 1200, 1120, 1080, 121, 800],
+  "delete-after":   [1200, 1400, 900, 1100, 1300, 1100, 900],
+  "delete-before":  [1200, 1400, 900, 1100, 1300, 1100, 900],
+  "num-check":      [28, 31, 35, 32, 30, 36, 34],
+  "num-ppl":        [28, 31, 35, 32, 30, 31, 32],
+};
+
+const metrics = [
+  { key: "vyruchka",      label: "Выручка, руб.",         color: "#1d4ed8" },
+  { key: "nal",           label: "Наличные",              color: "#1d4ed8" },
+  { key: "beznal",        label: "Безналичный расчёт",    color: "#1d4ed8" },
+  { key: "creditcard",    label: "Кредитные карты",       color: "#1d4ed8" },
+  { key: "avg-chek",      label: "Средний чек, руб.",     color: "#15803d" },
+  { key: "avg-guest",     label: "Средний гость, руб.",   color: "#c2410c" },
+  { key: "delete-after",  label: "Удаления после оплаты", color: "#be185d" },
+  { key: "delete-before", label: "Удаления до оплаты",    color: "#be185d" },
+  { key: "num-check",     label: "Количество чеков",      color: "#7c3aed" },  
+  { key: "num-ppl",       label: "Количество гостей",     color: "#7c3aed" },
+];
+
+const preparedMetrics = metrics.map(item => {
+  const values = rawData[item.key];
+  const today = values[values.length - 1];
+  const yesterday = values[values.length - 2];
+  const change = yesterday === 0 ? (today > 0 ? "+∞" : "—") : Math.round(((today - yesterday) / yesterday) * 100);
+ const sign = change > 0 ? "+" : (change < 0 ? "" : "");
+const changeStr = change === Infinity ? "+∞%" : change === 0 ? "0%" : `${sign}${Math.round(change)}%`;
+
+const isPositive = change > 0;
+const isNegative = change < 0;
+const changeClass = isPositive ? "change-positive" 
+                  : isNegative ? "change-negative" 
+                  : "";
+
+  return {
+    ...item,
+    current: today.toLocaleString("ru-RU"),
+    yesterday: yesterday.toLocaleString("ru-RU"),
+    change: changeStr,
+    week: item.key === "vyruchka" 
+      ? values.reduce((a,b)=>a+b,0).toLocaleString("ru-RU")
+      : Math.round(values.reduce((a,b)=>a+b,0) / values.length).toLocaleString("ru-RU"), isPositive, changeClass
+  };
+});
+
+const chartData = {};
+Object.keys(rawData).forEach(key => {
+  chartData[key] = {
+    values: rawData[key],
+    labels: daysOfWeek,
+  };
+});
+
+let activeChartKey = null;
+const chartInstances = {};
+
+const tbody = document.getElementById("tbody");
+
+preparedMetrics.forEach(item => {
+  const tr = document.createElement("tr");
+  tr.dataset.key = item.key;
+
+  const changeClass = item.isPositive ? "change-positive" : "change-negative";
+
+  tr.innerHTML = `
+    <td data-label="Показатель">${item.label}</td>
+    <td data-label="Сегодня">${item.current}</td>
+    <td data-label="Вчера" class="${changeClass}">${item.yesterday} <span>${item.change}</span></td>
+    <td data-label="Этот день нед.">${item.week}</td>
+  `;
+
+  const graphTr = document.createElement("tr");
+  graphTr.className = "graph-row";
+  graphTr.id = `graph-row-${item.key}`;
+  graphTr.innerHTML = `
+    <td colspan="4" class="graph-cell">
+      <div class="graph-inner" id="graph-inner-${item.key}">
+        <div class="graph-title">${item.label}</div>
+        <div class="subtitle">Сегодня • Вчера • Этот день недели</div>
+        <canvas id="chart-${item.key}" height="100"></canvas>
+      </div>
+    </td>
+  `;
+
+  tbody.appendChild(tr);
+  tbody.appendChild(graphTr);
+
+  tr.addEventListener("click", () => toggleGraph(item.key, item.label, item.color));
+});
+
+function toggleGraph(key, label, color) {
+  const row = document.getElementById(`graph-row-${key}`);
+  const inner = document.getElementById(`graph-inner-${key}`);
+  const isVisible = row.style.display === "table-row";
+
+  if (activeChartKey && activeChartKey !== key) {
+    const prevRow = document.getElementById(`graph-row-${activeChartKey}`);
+    const prevInner = document.getElementById(`graph-inner-${activeChartKey}`);
+    if (prevRow) {
+      prevRow.style.display = "none";
+      prevInner.classList.remove("visible");
+    }
+  }
+
+  if (isVisible) {
+    row.style.display = "none";
+    inner.classList.remove("visible");
+    activeChartKey = null;
+  } else {
+    row.style.display = "table-row";
+    setTimeout(() => inner.classList.add("visible"), 20);
+
+    if (!chartInstances[key]) {
+      const ctx = document.getElementById(`chart-${key}`).getContext("2d");
+      chartInstances[key] = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: chartData[key].labels,
+          datasets: [{
+            label,
+            data: chartData[key].values,
+            borderColor: color,
+            backgroundColor: color + "18",
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: document.body.dataset.theme === "dark" ? "#0f172a" : "#fff",
+            pointBorderColor: color,
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: { duration: 1000, easing: "easeOutQuart" },
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: document.body.dataset.theme === "dark" ? "#334155" : "#e5e7eb" } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    } else {
+      chartInstances[key].update();
+    }
+
+    activeChartKey = key;
+  }
+}
+
+function toggleTheme() {
+  const body = document.body;
+  const toggle = document.querySelector(".theme-toggle");
+
+  if (body.dataset.theme === "dark") {
+    body.removeAttribute("data-theme");
+    toggle.setAttribute("data-icon", "🌙");
+  } else {
+    body.dataset.theme = "dark";
+    toggle.setAttribute("data-icon", "☀️");
+  }
+
+  Object.keys(chartInstances).forEach(key => {
+    if (chartInstances[key]) chartInstances[key].update();
+  });
+}
+</script>
+</body>
+</html>
+</body>
+</html>
